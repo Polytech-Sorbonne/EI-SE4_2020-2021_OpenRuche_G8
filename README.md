@@ -1,1 +1,1 @@
-# EI-SE4_2020-2021_OpenRuche_G8
+View our hackster article here: https://www.hackster.io/380297/connected-beehive-liberate-beekeepers-80869c
