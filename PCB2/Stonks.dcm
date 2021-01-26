@@ -1,0 +1,23 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP DS18B20_C
+D Capteur de température
+$ENDCMP
+#
+$CMP Dht22_C
+D Capteur de température et humidité
+$ENDCMP
+#
+$CMP PMU
+D PowerManagementUnit
+$ENDCMP
+#
+$CMP SHT21_C
+D Capteur de température et humidité
+$ENDCMP
+#
+$CMP Sigfox
+D Module Sigfox
+$ENDCMP
+#
+#End Doc Library
