@@ -1,0 +1,155 @@
+var TOKEN = 'ENTRER_TOKEN';
+var VARIABLE = 'ID_DIRECTION_DU_VENT'; // direction du vent
+
+var VARIABLE1 = 'ID_ANEMOMETRE'; //force du vent 
+var VARIABLE2 = 'ID_MOVE'; // Ruche tombée ou pas
+
+function getDataFromVariable(variable, token, callback) {
+  var url = 'https://industrial.api.ubidots.com/api/v1.6/variables/' + variable + '/values';
+  var headers = {
+    'X-Auth-Token': token,
+    'Content-Type': 'application/json'
+  };
+  
+  $.ajax({
+    url: url,
+    method: 'GET',
+    headers: headers,
+    success: function (res) {
+      callback(res.results);
+    }
+  })
+} 
+
+getDataFromVariable(VARIABLE, TOKEN, function (value) {
+ /* Value receive by ubidot */
+//var value = 6;
+var text;
+var element;	
+/* Pour le texte */
+var element1;
+
+//0N 1NE 2E 3SE 4S 5SO 6O 7NO
+console.log(value[0].value);
+switch (value[0].value){
+    case 0:
+      text = "N";
+		element= document.getElementById("N");
+		element.classList.add("red");
+		element1 = document.getElementById("N1");
+		element1.classList.add("red");
+        break;
+    case 1:
+        text = "NE";
+		element= document.getElementById("NE");
+		element.classList.add("red");
+		element1 = document.getElementById("NE1");
+		element1.classList.add("red");
+        break;
+    case 2:
+        text = "E";
+		element= document.getElementById("E");
+		element.classList.add("red");
+		element1 = document.getElementById("E1");
+		element1.classList.add("red");
+        break;
+    case 3:
+        text = "SE";
+		element= document.getElementById("SE");
+		element.classList.add("red");
+		element1 = document.getElementById("SE1");
+		element1.classList.add("red");
+        break;
+    case 4:
+        text = "S";
+		element= document.getElementById("S");
+		element.classList.add("red");
+		element1 = document.getElementById("S1");
+		element1.classList.add("red");
+        break;
+    case 5:
+        text = "SW";
+		element= document.getElementById("SW");
+		element.classList.add("red");
+		element1 = document.getElementById("SW1");
+		element1.classList.add("red");
+        break;
+    case 6:
+        text = "W";
+		element= document.getElementById("W");
+		element.classList.add("red");
+		element1 = document.getElementById("W1");
+		element1.classList.add("red");
+        break;
+    case 7:
+        text = "NW";
+		element= document.getElementById("NW");
+		element.classList.add("red");
+		element1 = document.getElementById("NW1");
+		element1.classList.add("red");
+        break;
+    default:
+        text="Error";
+        break;
+    }
+    $('#content').text(text);
+  
+});
+
+getDataFromVariable(VARIABLE1, TOKEN, function (value1) {
+ /* Value receive by ubidot */
+var text = (value1[0].value)*10;
+console.log(value1[0].value);
+
+    $('#vitesse').text(text);
+  
+});
+
+
+function getDataFromVariable(variable, token, callback) {
+  var url = 'https://industrial.api.ubidots.com/api/v1.6/variables/' + variable + '/values';
+  var headers = {
+    'X-Auth-Token': token,
+    'Content-Type': 'application/json'
+  };
+  
+  $.ajax({
+    url: url,
+    method: 'GET',
+    headers: headers,
+    success: function (res) {
+      callback(res.results);
+    }
+  })
+} 
+
+getDataFromVariable(VARIABLE2, TOKEN, function (value2) {
+ /* Value receive by ubidot */
+//var value = 6;
+var text;
+var element;	
+/* Pour le texte */
+var element1;
+
+//0N 1NE 2E 3SE 4S 5SO 6O 7NO
+console.log(value2[0].value);
+switch (value2[0].value){
+    case 0:
+        text = "La ruche n'est pas tombée";
+        break;
+    case 1:
+        text = "La ruche est tombée";
+		element= document.getElementById("ruche");
+		element.classList.add("red");
+        break;
+
+    default:
+        text="Error";
+        break;
+    }
+    $('#falling').text(text);
+  
+});
+
+
+
