@@ -1,5 +1,7 @@
 #include "Honey.h"
 
+//DECLARATION DES DIFFERENTES PINS
+
 //Microphone
 AnalogIn microphone(A4);
 
@@ -23,10 +25,9 @@ MMA8452 mma8452(D12,A6);
 AnalogIn ain2(A1);
 
 //Communication
-//Serial pc(USBTX, USBRX);
-//Sigfox
-Serial sigfox(D1,D0);
-//Serial pc(D1,D0); // liaison serie avec le pc pour tester fonctionnement
+//Serial pc(USBTX, USBRX);                  //Communication série
+Serial sigfox(D1,D0);                       //Communication Sigfox
+//Serial pc(D1,D0);                         //Communication série par TX/RX
 
 //Anemometre
 DigitalIn anemo(D11);
@@ -35,23 +36,24 @@ DigitalIn anemo(D11);
 HX711 poids_sens(D10,D9);
 
 Timer t;
-
 bool flag = false;
 
-Ruche ruche;
+Ruche ruche;                                //Initialisation de la structure Ruche
 
-const int nbEch = 1024; 
-const int frqEch = 7000;
-const float PI = 3.14159265;
-const int fftSize = (int)nbEch/2;
 
-Mikami::FftReal fft((short)fftSize);
+//Paramètres FFT
+const int nbEch = 1024;                     //Nombre d'échantillons           
+const int frqEch = 7000;                    //Fréquence d'échantillonnage
+const float PI = 3.14159265;            
+const int fftSize = (int)nbEch/2;           //Taille FFT
 
-bool full = false;
-int cptfft = 0;
+Mikami::FftReal fft((short)fftSize);        //Déclaration de l'objet FFT
 
-float dataIn[nbEch]; 
-Mikami::Complex dataOut[fftSize];
+bool full = false;                          //Variable qui indique si le tableau FFT est rempli
+int cptfft = 0;                             //Compteur FFT
+
+float dataIn[nbEch];                        //Tableau contenant les données échantillionnée
+Mikami::Complex dataOut[fftSize];           //Tableau contenant la puissance en fonction de la fréquence
 
 //**************************************************** 
 /********************MICROPHONE***********************/
@@ -159,26 +161,26 @@ float readtempDS(DS1820& sensor){
     float temp=0;
     int result = 0;
     int flag =0;
-    
+
     while (flag==0)
     
-    if (sensor.begin()){
+         if (sensor.begin()){
        
-       flag=0;
+            flag=0;
        
-       sensor.startConversion();   // start temperature conversion from analog to digital
-       wait(1);                  // let DS1820 complete the temperature conversion
-       result = sensor.read(temp); // read temperature from DS1820 and perform cyclic redundancy check (CRC)
+            sensor.startConversion();       // start temperature conversion from analog to digital
+            wait(1);                        // let DS1820 complete the temperature conversion
+            result = sensor.read(temp);     // read temperature from DS1820 and perform cyclic redundancy check (CRC)
       
        switch (result) {
-           case 0:   // no errors -> 'temp' contains the value of measured temperature 
+           case 0:                  // Pas d'erreur -> 'temp' a été mis à jour 
                return temp;
-
-           case 1:                 // no sensor present -> 'temp' is not updated
+               
+           case 1:                 // Pas de capteur detecté -> 'temp' n'a pas été mis à jour
                 return -1;
 
-           case 2:                 // CRC error -> 'temp' is not updated
-               return -2;
+           case 2:                 // Erreur CRC -> 'temp' n'a pas été mis à jour 
+                return -2;
        }    
     } 
        return NULL; 
@@ -347,60 +349,73 @@ float get_poids(HX711& sensor){
 /****************************************************/
 
 //Permet de remlir la structure de données représentant la ruche
-void get_data(Ruche& ruche){
-    ruche.temperatureINT = readtempDS(ds1820);
-    ruche.temperatureEXT = getTemperatureEXT(dht_ext);
-    ruche.humidityEXT = getHumidityEXT(dht_ext);
-    ruche.temperatureINT_SHT= getTemperatureINT_SHT(sht);
-    ruche.humidityINT_SHT= getHumidityINT_SHT(sht);
+bool get_data(Ruche& ruche){
+    
     ruche.Batterie=getEtatBatterie();
-    ruche.Girouette = getGirouette();
-    ruche.anenometre= get_anemometre();
-    ruche.has_move=getAccel(ruche);
-    ruche.poids = get_poids(poids_sens);
-    if (ruche.poids < 0 && flag){
-        ruche.has_move = 1;
+    if (ruche.Batterie > 2) { 
+        ruche.temperatureINT = readtempDS(ds1820);
+        ruche.temperatureEXT = getTemperatureEXT(dht_ext); 
+        ruche.humidityEXT = getHumidityEXT(dht_ext);
+        ruche.temperatureINT_SHT= getTemperatureINT_SHT(sht); 
+        ruche.humidityINT_SHT= getHumidityINT_SHT(sht); 
+        ruche.Girouette = getGirouette(); 
+        ruche.anenometre= get_anemometre();  
+        ruche.has_move=getAccel(ruche); 
+        ruche.poids = get_poids(poids_sens); 
+        if (ruche.poids < 0 && flag){
+            ruche.has_move = 1;
+        }  
+        ruche.freqMax = getFreq(); 
+        return true; //y a assez de batterie pour acquérir les données on peut les envoyée
     }
-    ruche.freqMax = getFreq(); 
+    else {
+        return false; // pas assez de batterie, on fait rien
+    }
 }
 
-/* Envoie en série des données 
-
+// Envoie en série des données 
+/*
 void send_data_serial(void){
     pc.printf("Debut acquisition ...\r\n");
-    get_data(ruche);
-    pc.printf("DHT(T /0.5°): %d \r\nDHT(H /0,02): %u \r\n", ruche.temperatureEXT,ruche.humidityEXT); //GOOD
-    pc.printf("SHT(T /0.3°): %.f \r\nSHT(H /0,03): %u \r\n", ruche.temperatureINT_SHT , ruche.humidityINT_SHT); //GOOD
-    pc.printf("X[%.2f] Y[%.2f] Z[%.2f] Mouvement :%d \r\n", ruche.x,ruche.y,ruche.z,ruche.has_move);
-    pc.printf("Direction Vent %d \r\nVitesse Vent %u\r\n", ruche.Girouette, (unsigned int)ruche.anenometre);
-    pc.printf("DS18B20: %.f\r\n" ,ruche.temperatureINT);
-    pc.printf("poids: %.2f\r\n" ,ruche.poids);
-    pc.printf("Freq Fond: %d\r\n", ruche.freqMax);
-    pc.printf("Amplitude: %d\r\n", ruche.dbMax);
-    pc.printf("Amplitude 225-285: %d\r\n", ruche.db_225_285);
-    pc.printf("Amplitude 400: %d\r\n", ruche.db_400);
-    pc.printf("\r\n");
-}
-*/
+    if (get_data(ruche)){ 
+        pc.printf("DHT(T /0.5°): %d \r\nDHT(H /0,02): %u \r\n", ruche.temperatureEXT,ruche.humidityEXT); //GOOD
+        pc.printf("SHT(T /0.3°): %.f \r\nSHT(H /0,03): %u \r\n", ruche.temperatureINT_SHT , ruche.humidityINT_SHT); //GOOD
+        pc.printf("X[%.2f] Y[%.2f] Z[%.2f] Mouvement :%d \r\n", ruche.x,ruche.y,ruche.z,ruche.has_move);
+        pc.printf("Direction Vent %d \r\nVitesse Vent %u\r\n", ruche.Girouette, (unsigned int)ruche.anenometre);
+        pc.printf("DS18B20: %.f\r\n" ,ruche.temperatureINT);
+        pc.printf("poids: %.2f\r\n" ,ruche.poids);
+        pc.printf("Freq Fond: %d\r\n", ruche.freqMax);
+        pc.printf("Amplitude: %d\r\n", ruche.dbMax);
+        pc.printf("Amplitude 225-285: %d\r\n", ruche.db_225_285);
+        pc.printf("Amplitude 400: %d\r\n", ruche.db_400);
+        pc.printf("\r\n");
+    }
+    else {
+        pc.printf("Pas assez de batterie \r\n");
+    }
+}*/
+
+
 
 // Ajouter le sleep de sigfox ?
 void send_data(void){
   
-    sigfox.baud(9600);
-    get_data(ruche);
-
-    unsigned int bga = 0;
-    bga = ((unsigned int)ruche.Batterie << 4 ) | ((unsigned int)ruche.Girouette << 1) | ((unsigned int)ruche.has_move);
-    
-    unsigned int he_vv = 0;
-    he_vv = (unsigned int)(ruche.anenometre << 4 ) | (ruche.humidityEXT);
-   
-   unsigned int sht_t_DHT_T = 0;
-   sht_t_DHT_T= ( (unsigned int)((ruche.temperatureINT_SHT)*10) << 6 ) | ( (int)(ruche.temperatureEXT) );
-   
-   unsigned int DS_SHT_H = 0;
-   DS_SHT_H= ( (unsigned int)((ruche.temperatureINT)*10) << 6 ) | ( (unsigned int)(ruche.humidityINT_SHT) );
-   
-   sigfox.printf("AT$SF=%02x%02x%04x%04x%04x%02x%02x%02x%02x\r\n", bga,he_vv,sht_t_DHT_T,DS_SHT_H,(unsigned int)ruche.poids,(uint8_t)ruche.db_225_285,(uint8_t)ruche.db_100,(uint8_t)ruche.db_3000,(uint8_t)ruche.db_1100);//,(unsigned int)ruche.db_3000);//,ruche.db_100,ruche.db_400,ruche.db_1100,ruche.db_3000);;// poids ruche.db_225_285);//ruche.db_225_285,ruche.db_100,ruche.db_400,ruche.db_1100,ruche.db_3000);
- 
+    if(get_data(ruche)){
+        sigfox.baud(9600);
+        unsigned int bga = 0;
+        bga = ((unsigned int)ruche.Batterie << 4 ) | ((unsigned int)ruche.Girouette << 1) | ((unsigned int)ruche.has_move);
+        
+        unsigned int he_vv = 0;
+        he_vv = (unsigned int)(ruche.anenometre << 4 ) | (ruche.humidityEXT);
+       
+       unsigned int sht_t_DHT_T = 0;
+       sht_t_DHT_T= ( (unsigned int)((ruche.temperatureINT_SHT)*10) << 6 ) | ( (int)(ruche.temperatureEXT) );
+       
+       unsigned int DS_SHT_H = 0;
+       DS_SHT_H= ( (unsigned int)((ruche.temperatureINT)*10) << 6 ) | ( (unsigned int)(ruche.humidityINT_SHT) );
+       
+       sigfox.printf("AT$SF=%02x%02x%04x%04x%04x%02x%02x%02x%02x\r\n", bga,he_vv,sht_t_DHT_T,DS_SHT_H,(unsigned int)ruche.poids,(uint8_t)ruche.db_225_285,(uint8_t)ruche.db_100,(uint8_t)ruche.db_3000,(uint8_t)ruche.db_1100);//,(unsigned int)ruche.db_3000);//,ruche.db_100,ruche.db_400,ruche.db_1100,ruche.db_3000);;// poids ruche.db_225_285);//ruche.db_225_285,ruche.db_100,ruche.db_400,ruche.db_1100,ruche.db_3000);
+       sigfox.printf("AT$P=2");
+       
+    }
 }

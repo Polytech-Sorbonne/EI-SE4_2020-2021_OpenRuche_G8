@@ -1,6 +1,7 @@
 #ifndef HONEY_H_
 #define HONEY_H_
 
+//Include des différentes librairies
 #include "mbed.h"
 #include "DS1820.h"
 #include "DHT.h"
@@ -12,59 +13,57 @@
 #include <math.h>
 #include <stdbool.h>
 
-
+//Structure définissant les grandeurs de la ruche
 typedef struct hive {
-    int temperatureEXT;
-    unsigned int humidityEXT;
     
-    /* pour température intérieure */
-    float temperatureINT;
     
-    /* pour l'acceleromètre */
-    double x , y , z ;   
+    int temperatureEXT;                             //Température extérieure    (DHT)
+    unsigned int humidityEXT;                       //Humidité extérieure       (DHT) 
     
-    /*pour température et humidité intérieure */  
-    float temperatureINT_SHT ;
-    unsigned int humidityINT_SHT ;
+    float temperatureINT;                           //Température intérieure    (DSB18B20)
+   
+    double x , y , z ;                              //Données accéléromètre 
     
-    int Batterie ; 
+    float temperatureINT_SHT ;                      //Température intérieure    (SHT21)
+    unsigned int humidityINT_SHT ;                  //Humidité intérieure       (SHT21)
     
-    int Girouette; 
-    unsigned int anenometre; 
-    float poids; 
+    int Batterie ;                                  //Etat de la batterie
     
-    bool has_move; 
+    int Girouette;                                  //Direction du vent
+    unsigned int anenometre;                        //Vitesse du vent
+    float poids;                                    //Poids de la ruche
     
-    int freqMax;
-    int dbMax;  
+    bool has_move;                                  //Variable mouvement ruche
     
-    int db_225_285;
-    int db_400;
-    int db_100;
-    int db_1100;
-    int db_3000;
+    int freqMax;                                    //Valeur de la fréquence maximale enregistrée
+    int dbMax;                                      //Puissance maximale
+    
+    int db_225_285;                                 //Puissance enregistrée pour des fréquences entre 225 et 285 Hz
+    int db_400;                                     //Puissance enregistrée pour une fréquence de 400 Hz
+    int db_100;                                     //Puissance enregistrée pour une fréquence de 100 Hz
+    int db_1100;                                    //Puissance enregistrée pour une fréquence de 1100 Hz
+    int db_3000;                                    //Puissance enregistrée pour une fréquence de 3000 Hz
+    
 } Ruche, *pRuche;
 
-float readtempDS(DS1820& sensor);
-int getTemperatureEXT(DHT& sensor);
-unsigned int getHumidityEXT(DHT& sensor);
-float getTemperatureINT_SHT(SHT21& sensor);
-unsigned int getHumidityINT_SHT(SHT21& sensor);
-//int getEtatBatterie();
-int getAccel(Ruche& ruche);
-int getGirouette();
-unsigned int get_anemometre();
-int getFreq();
-float get_poids(HX711& sensor); 
 
+//Définition des prototypes de fonctions
 
-void get_data(Ruche& ruche);
+float readtempDS(DS1820& sensor);                   //Lecture température intérieure   (DS18B20)
+int getTemperatureEXT(DHT& sensor);                 //Lecture température extérieure   (DHT)
+unsigned int getHumidityEXT(DHT& sensor);           //Lecture humidité extérieure      (DHT)
+float getTemperatureINT_SHT(SHT21& sensor);         //Lecture température intérieure   (SHT21)
+unsigned int getHumidityINT_SHT(SHT21& sensor);     //Lecture humidité intérieure      (SHT21)
+int getEtatBatterie();                              //Lecutre état de la batterie    
+int getAccel(Ruche& ruche);                         //Lecture accéléromètre
+int getGirouette();                                 //Lecture direction du vent
+unsigned int get_anemometre();                      //Lecture vitesse du vent
+int getFreq();                                      //Lecture fréquence
+float get_poids(HX711& sensor);                     //Lecture du poids
 
-
-void send_data(void);
-
-
-void send_data_serial(void);
+bool get_data(Ruche& ruche);                        //Fonction d'éxecution des différentes lectures de grandeurs            
+void send_data(void);                               //Envoi des données par Sigfox
+void send_data_serial(void);                        //Envoi des données par communication série
 
 
 #endif
